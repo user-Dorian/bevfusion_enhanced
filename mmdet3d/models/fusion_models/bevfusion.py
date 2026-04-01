@@ -12,7 +12,7 @@ from mmdet3d.models.builder import (
     build_neck,
     build_vtransform,
 )
-from mmdet3d.ops import Voxelization, DynamicScatter
+from mmdet3d.ops import Voxelization, DynamicScatter, DistanceAdaptiveVoxelization
 from mmdet3d.models import FUSIONMODELS
 
 
@@ -43,10 +43,21 @@ class BEVFusion(Base3DFusionModel):
                 }
             )
         if encoders.get("lidar") is not None:
-            if encoders["lidar"]["voxelize"].get("max_num_points", -1) > 0:
+            # Check if using distance-adaptive voxelization
+            if encoders["lidar"]["voxelize"].get("type", "") == "DistanceAdaptiveVoxelization":
+                voxelize_module = DistanceAdaptiveVoxelization(
+                    voxel_configs=encoders["lidar"]["voxelize"]["voxel_configs"],
+                    point_cloud_range=encoders["lidar"]["voxelize"]["point_cloud_range"],
+                    max_num_points=encoders["lidar"]["voxelize"].get("max_num_points", 10),
+                )
+                self.use_distance_adaptive = True
+            elif encoders["lidar"]["voxelize"].get("max_num_points", -1) > 0:
                 voxelize_module = Voxelization(**encoders["lidar"]["voxelize"])
+                self.use_distance_adaptive = False
             else:
                 voxelize_module = DynamicScatter(**encoders["lidar"]["voxelize"])
+                self.use_distance_adaptive = False
+            
             self.encoders["lidar"] = nn.ModuleDict(
                 {
                     "voxelize": voxelize_module,
@@ -149,10 +160,25 @@ class BEVFusion(Base3DFusionModel):
         return x
     
     def extract_features(self, x, sensor) -> torch.Tensor:
-        feats, coords, sizes = self.voxelize(x, sensor)
-        batch_size = coords[-1, 0] + 1
-        x = self.encoders[sensor]["backbone"](feats, coords, batch_size, sizes=sizes)
-        return x
+        if self.use_distance_adaptive and sensor == "lidar":
+            # Distance-adaptive voxelization returns list of zone results
+            zone_results = self.encoders[sensor]["voxelize"](x[0])
+            
+            # Get batch size from first zone
+            if len(zone_results) > 0:
+                batch_size = zone_results[0]['coords'][-1, 0] + 1 if len(zone_results[0]['coords']) > 0 else 1
+            else:
+                batch_size = 1
+            
+            # Pass zone results to multi-resolution backbone
+            x = self.encoders[sensor]["backbone"](zone_results, batch_size)
+            return x
+        else:
+            # Standard voxelization
+            feats, coords, sizes = self.voxelize(x, sensor)
+            batch_size = coords[-1, 0] + 1
+            x = self.encoders[sensor]["backbone"](feats, coords, batch_size, sizes=sizes)
+            return x
     
     # def extract_lidar_features(self, x) -> torch.Tensor:
     #     feats, coords, sizes = self.voxelize(x)
