@@ -86,3 +86,10 @@ lr_config:
   warmup_iters: 500
   warmup_ratio: 0.33333333
   min_lr_ratio: 1.0e-3
+
+# 数据加载配置（避免显存溢出）
+data:
+  samples_per_gpu: 2  # batch_size=2，避免显存溢出
+  workers_per_gpu: 2  # 数据加载线程数
+
+max_epochs: 6  # 训练 6 个 epoch

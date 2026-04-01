@@ -264,8 +264,8 @@ test_pipeline:
     keyframe_only: true 
 
 data:
-  samples_per_gpu: 1  # 4
-  workers_per_gpu: 0  # 4
+  samples_per_gpu: 2  # 修改为 2 以避免显存溢出（原值：1）
+  workers_per_gpu: 2  # 修改为 2（原值：0）
   train:
     type: CBGSDataset
     dataset:
