@@ -39,7 +39,7 @@ from .roiaware_pool3d import (
     points_in_boxes_gpu,
 )
 from .sparse_block import SparseBasicBlock, SparseBottleneck, make_sparse_convmodule
-from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization
+from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization, DistanceAdaptiveVoxelization, distance_adaptive_voxelize
 
 __all__ = [
     "nms",
@@ -91,4 +91,6 @@ __all__ = [
     "PAConvCUDASAModuleMSG",
     "bev_pool",
     "feature_decorator",
+    "DistanceAdaptiveVoxelization",
+    "distance_adaptive_voxelize",
 ]
