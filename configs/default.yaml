@@ -21,7 +21,7 @@ fp16:
   loss_scale: 
     growth_interval: 2000
 
-max_epochs: 6 # 修改为 6 个 epoch 进行测试
+max_epochs: 6 # 20
 runner:
   type: CustomEpochBasedRunner
   max_epochs: ${max_epochs}
