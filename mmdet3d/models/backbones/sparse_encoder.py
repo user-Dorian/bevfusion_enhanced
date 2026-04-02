@@ -5,6 +5,7 @@ from torch import nn as nn
 from mmdet3d.ops import SparseBasicBlock, make_sparse_convmodule
 from mmdet3d.ops import spconv as spconv
 from mmdet.models import BACKBONES
+from mmdet3d.models.utils.cbam import CBAM
 
 
 @BACKBONES.register_module()
@@ -42,6 +43,8 @@ class SparseEncoder(nn.Module):
         encoder_channels=((16,), (32, 32, 32), (64, 64, 64), (64, 64, 64)),
         encoder_paddings=((1,), (1, 1, 1), (1, 1, 1), ((0, 1, 1), 1, 1)),
         block_type="conv_module",
+        use_cbam=False,  # Whether to use CBAM attention
+        cbam_ratio=16,  # CBAM reduction ratio
     ):
         super().__init__()
         assert block_type in ["conv_module", "basicblock"]
@@ -54,6 +57,7 @@ class SparseEncoder(nn.Module):
         self.encoder_paddings = encoder_paddings
         self.stage_num = len(self.encoder_channels)
         self.fp16_enabled = False
+        self.use_cbam = use_cbam
         # Spconv init all weight on its own
 
         assert isinstance(order, (list, tuple)) and len(order) == 3
@@ -84,6 +88,12 @@ class SparseEncoder(nn.Module):
         encoder_out_channels = self.make_encoder_layers(
             make_sparse_convmodule, norm_cfg, self.base_channels, block_type=block_type
         )
+
+        # Add CBAM attention after encoder if specified
+        if self.use_cbam:
+            self.cbam = CBAM(encoder_out_channels, ratio=cbam_ratio)
+        else:
+            self.cbam = None
 
         self.conv_out = make_sparse_convmodule(
             encoder_out_channels,
@@ -123,6 +133,11 @@ class SparseEncoder(nn.Module):
         # for detection head
         # [200, 176, 5] -> [200, 176, 2]
         out = self.conv_out(encode_features[-1])
+        
+        # Apply CBAM attention if specified
+        if self.cbam is not None:
+            out = out.replace_feature(self.cbam(out.features))
+        
         spatial_features = out.dense()
 
         N, C, H, W, D = spatial_features.shape
