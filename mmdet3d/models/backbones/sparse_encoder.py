@@ -133,16 +133,15 @@ class SparseEncoder(nn.Module):
         # for detection head
         # [200, 176, 5] -> [200, 176, 2]
         out = self.conv_out(encode_features[-1])
-        
-        # Apply CBAM attention if specified
-        if self.cbam is not None:
-            out = out.replace_feature(self.cbam(out.features))
-        
         spatial_features = out.dense()
 
         N, C, H, W, D = spatial_features.shape
         spatial_features = spatial_features.permute(0, 1, 4, 2, 3).contiguous()
         spatial_features = spatial_features.view(N, C * D, H, W)
+        
+        # Apply CBAM attention on dense BEV features (after permutation)
+        if self.cbam is not None:
+            spatial_features = self.cbam(spatial_features)
 
         return spatial_features
 
