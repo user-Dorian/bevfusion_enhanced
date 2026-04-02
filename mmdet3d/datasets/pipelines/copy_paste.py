@@ -7,7 +7,7 @@ small objects in LiDAR point cloud data.
 
 import numpy as np
 import torch
-from mmdet.datasets.pipelines import PIPELINES
+from mmdet.datasets import PIPELINES
 
 
 @PIPELINES.register_module()
