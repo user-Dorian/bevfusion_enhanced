@@ -37,8 +37,8 @@ model:
         type: DepthLSSTransform
         in_channels: 256
         out_channels: 80
-        image_size: [224, 400]
-        feature_size: [28, 50]
+        image_size: [256, 448]
+        feature_size: [32, 56]
         xbound: [-54.0, 54.0, 0.3]
         ybound: [-54.0, 54.0, 0.3]
         zbound: [-10.0, 10.0, 20.0]
