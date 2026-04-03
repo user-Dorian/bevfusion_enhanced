@@ -1,7 +1,6 @@
 from mmcv.cnn import build_conv_layer, build_norm_layer
 from torch import nn
 
-from mmdet3d.ops.spconv.conv import SparseConvModule
 from mmdet3d.ops.spconv.modules import SparseModule, SparseSequential
 from mmdet3d.ops.spconv.structure import SparseConvTensor
 from mmdet.models.backbones.resnet import BasicBlock, Bottleneck
