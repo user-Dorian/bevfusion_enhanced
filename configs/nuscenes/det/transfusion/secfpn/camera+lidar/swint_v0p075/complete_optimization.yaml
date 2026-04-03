@@ -1,0 +1,123 @@
+# Complete Optimized Configuration for BEVFusion
+# Combines all fixes and improvements
+# Target: Recover mAP from 0.295 to >0.31
+
+_base_: "default.yaml"
+
+# ============================================================
+# 1. Fixed Feature Fusion Configuration
+# ============================================================
+model:
+  fuser:
+    type: ConvFuser
+    in_channels: [80, 128]  # Fixed: was [80, 256]
+    out_channels: 256
+  
+  # Optional: Use MultiScaleConvFuser for better fusion
+  # fuser:
+  #   type: MultiScaleConvFuser
+  #   in_channels: [80, 128]
+  #   out_channels: 256
+  #   attention_ratio: 16
+  
+  heads:
+    object:
+      train_cfg:
+        # Class-specific loss weighting for small objects
+        class_weights:
+          - 1.0  # car
+          - 1.0  # truck
+          - 1.2  # construction_vehicle
+          - 1.0  # bus
+          - 1.0  # trailer
+          - 2.0  # pedestrian
+          - 2.5  # motorcycle
+          - 2.5  # bicycle
+          - 3.0  # traffic_cone
+          - 3.0  # barrier
+        
+        # Optimized loss functions
+        loss_cls:
+          type: FocalLoss
+          use_sigmoid: true
+          gamma: 2.0
+          alpha: 0.25
+          loss_weight: 1.2  # Slightly increased
+        
+        loss_bbox:
+          type: SmoothL1Loss
+          loss_weight: 1.5  # Increased from default
+        
+        loss_heatmap:
+          type: GaussianFocalLoss
+          alpha: 2.0
+          gamma: 4.0
+          loss_weight: 1.2
+
+# ============================================================
+# 2. Optimized Learning Rate Schedule
+# ============================================================
+lr_config:
+  policy: CosineAnnealing
+  warmup: linear
+  warmup_iters: 1000  # Increased from 500
+  warmup_ratio: 0.1   # More conservative
+  min_lr_ratio: 0.1   # Prevent too small LR
+
+optimizer:
+  lr: 2.0e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+# Gradient clipping for stability
+clip_grad:
+  max_norm: 35
+  norm_type: 2
+
+# ============================================================
+# 3. Enhanced Data Augmentation
+# ============================================================
+data:
+  train:
+    pipeline:
+      # Copy-Paste for small objects
+      - type: CopyPaste3D
+        classes: ['pedestrian', 'motorcycle', 'bicycle', 'traffic_cone', 'barrier']
+        max_num_pasted: 15
+        paste_probability: 0.7
+        scale_range: [0.8, 1.2]
+        rotate_range: [-0.2618, 0.2618]
+      
+      # Global rotation and scaling
+      - type: GlobalRotScaleTrans
+        rot_range: [-0.3925, 0.3925]
+        scale_ratio_range: [0.9, 1.1]
+        translation_std: [0.25, 0.25, 0.25]
+      
+      # Random flipping
+      - type: RandomFlip3D
+        flip_ratio_bev_horizontal: 0.5
+        flip_ratio_bev_vertical: 0.5
+  
+  samples_per_gpu: 2
+  workers_per_gpu: 2
+
+# ============================================================
+# 4. Training Schedule
+# ============================================================
+train_cfg:
+  max_epochs: 20  # Recommended for production
+  val_interval: 1
+
+# ============================================================
+# 5. Checkpoint and Logging
+# ============================================================
+checkpoint_config:
+  interval: 1
+  max_keep_ckpts: 3
+
+log_config:
+  interval: 50
+  hooks:
+    - type: TextLoggerConfig
+    - type: TensorboardLoggerConfig

@@ -42,19 +42,16 @@ class DepthLSSTransform(BaseDepthTransform):
             height_expand=height_expand,
         )
         depth_in_channels = 1 if depth_input == 'scalar' else self.D
-        # dtransform output must match feature_size (downsampled from image_size by 8x)
-        # image_size=[224, 400] -> feature_size=[28, 50]
+        # Note: if add_depth_features=True, actual channels will be 1 + point_features
+        # This needs to match the dtransform input channels
         self.dtransform = nn.Sequential(
             nn.Conv2d(depth_in_channels, 8, 1),
             nn.BatchNorm2d(8),
             nn.ReLU(True),
-            nn.Conv2d(8, 32, 3, stride=2, padding=1),  # /2
+            nn.Conv2d(8, 32, 5, stride=4, padding=2),
             nn.BatchNorm2d(32),
             nn.ReLU(True),
-            nn.Conv2d(32, 64, 3, stride=2, padding=1),  # /4
-            nn.BatchNorm2d(64),
-            nn.ReLU(True),
-            nn.Conv2d(64, 64, 3, stride=2, padding=1),  # /8
+            nn.Conv2d(32, 64, 5, stride=2, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(True),
         )

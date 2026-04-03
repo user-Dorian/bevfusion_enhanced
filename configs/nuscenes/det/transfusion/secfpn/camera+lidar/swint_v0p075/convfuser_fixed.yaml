@@ -1,0 +1,12 @@
+# Fixed ConvFuser Configuration
+# Issue: Original config had mismatched in_channels [80, 256]
+# Fix: Changed to [80, 128] to match LiDAR backbone output
+
+model:
+  fuser:
+    type: ConvFuser
+    in_channels: [80, 128]  # Fixed: was [80, 256]
+    out_channels: 256
+
+# Inherit from base config
+_base_: "default.yaml"

@@ -1,6 +1,6 @@
 model:
   fuser:
-    type: ConvFuser
+    type: MultiScaleConvFuser
     in_channels: [80, 128]
     out_channels: 256
-
+    attention_ratio: 16

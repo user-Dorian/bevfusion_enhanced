@@ -39,6 +39,9 @@ class ChannelAttention(nn.Module):
         avg_out = self.fc(self.avg_pool(x))
         max_out = self.fc(self.max_pool(x))
         out = avg_out + max_out
+        
+        # Add numerical stability for sigmoid
+        out = torch.clamp(out, -10.0, 10.0)
         return self.sigmoid(out) * x
 
 
@@ -67,6 +70,9 @@ class SpatialAttention(nn.Module):
         
         # Convolution
         x = self.conv(x)
+        
+        # Add numerical stability
+        x = torch.clamp(x, -10.0, 10.0)
         return self.sigmoid(x) * x
 
 
