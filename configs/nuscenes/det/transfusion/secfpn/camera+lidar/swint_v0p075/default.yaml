@@ -26,8 +26,19 @@ model:
       neck:
         in_channels: [192, 384, 768]
       vtransform:
+        type: DepthLSSTransform
+        in_channels: 256
+        out_channels: 80
+        image_size: [224, 400]
+        feature_size: [28, 50]
         xbound: [-54.0, 54.0, 0.3]
         ybound: [-54.0, 54.0, 0.3]
+        zbound: [-10.0, 10.0, 20.0]
+        dbound: [1.0, 60.0, 0.5]
+        downsample: 2
+        depth_input: scalar
+        add_depth_features: false
+        height_expand: true
     lidar:
       voxelize:
         point_cloud_range: ${point_cloud_range}
