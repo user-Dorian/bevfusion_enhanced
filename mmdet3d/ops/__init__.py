@@ -38,7 +38,8 @@ from .roiaware_pool3d import (
     points_in_boxes_cpu,
     points_in_boxes_gpu,
 )
-from .sparse_block import SparseBasicBlock, SparseBottleneck, make_sparse_convmodule
+# Lazy import sparse_block to avoid spconv registration conflicts
+# from .sparse_block import SparseBasicBlock, SparseBottleneck, make_sparse_convmodule
 from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization, DistanceAdaptiveVoxelization, distance_adaptive_voxelize
 
 __all__ = [

@@ -2,7 +2,7 @@
 from mmcv.runner import auto_fp16
 from torch import nn as nn
 
-from mmdet3d.ops import SparseBasicBlock, make_sparse_convmodule
+from mmdet3d.ops.sparse_block import SparseBasicBlock, make_sparse_convmodule
 from mmdet3d.ops import spconv as spconv
 from mmdet.models import BACKBONES
 from mmdet3d.models.utils.cbam import CBAM
