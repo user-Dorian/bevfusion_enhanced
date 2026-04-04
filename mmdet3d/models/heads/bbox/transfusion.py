@@ -612,6 +612,15 @@ class TransFusionHead(nn.Module):
         preds_dict = preds_dicts[0][0]
         loss_dict = dict()
 
+        # Get class weights for small object optimization
+        class_weights = self.train_cfg.get('class_weights', None)
+        
+        # Apply class-specific weights if specified
+        if class_weights is not None:
+            class_weights_tensor = label_weights.new_tensor(class_weights)
+            # Expand to match label dimensions
+            label_weights = label_weights * class_weights_tensor[labels].clamp(min=0)
+
         # compute heatmap loss
         loss_heatmap = self.loss_heatmap(
             clip_sigmoid(preds_dict["dense_heatmap"]),
