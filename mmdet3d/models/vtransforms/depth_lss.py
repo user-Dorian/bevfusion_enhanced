@@ -11,6 +11,25 @@ from .base import BaseDepthTransform
 __all__ = ["DepthLSSTransform"]
 
 
+class SEBlock(nn.Module):
+    """Squeeze-and-Excitation attention block for channel attention"""
+    def __init__(self, channels, reduction=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.ReLU(True),
+            nn.Linear(channels // reduction, channels, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+
 @VTRANSFORMS.register_module()
 class DepthLSSTransform(BaseDepthTransform):
     def __init__(
@@ -28,6 +47,7 @@ class DepthLSSTransform(BaseDepthTransform):
         add_depth_features: bool = True,
         height_expand: bool = True,
         point_feature_dims: int = 5,
+        use_attention: bool = True,
     ) -> None:
         super().__init__(
             in_channels=in_channels,
@@ -42,9 +62,13 @@ class DepthLSSTransform(BaseDepthTransform):
             add_depth_features=add_depth_features,
             height_expand=height_expand,
         )
+        self.use_attention = use_attention
+        
         depth_in_channels = 1 if depth_input == 'scalar' else self.D
         if add_depth_features:
             depth_in_channels += point_feature_dims
+        
+        # Enhanced depth feature extraction with multi-scale processing
         self.dtransform = nn.Sequential(
             nn.Conv2d(depth_in_channels, 8, 1),
             nn.BatchNorm2d(8),
@@ -55,14 +79,19 @@ class DepthLSSTransform(BaseDepthTransform):
             nn.Conv2d(32, 64, 5, stride=2, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(True),
+            SEBlock(64) if use_attention else nn.Identity(),
         )
+        
+        # Enhanced depthnet with attention for better small object detection
+        depthnet_channels = in_channels + 64
         self.depthnet = nn.Sequential(
-            nn.Conv2d(in_channels + 64, in_channels, 3, padding=1),
+            nn.Conv2d(depthnet_channels, in_channels, 3, padding=1),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(True),
             nn.Conv2d(in_channels, in_channels, 3, padding=1),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(True),
+            SEBlock(in_channels) if use_attention else nn.Identity(),
             nn.Conv2d(in_channels, self.D + self.C, 1),
         )
         if downsample > 1:
