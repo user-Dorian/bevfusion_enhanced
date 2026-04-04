@@ -509,6 +509,7 @@ class AwareDBEVDepth(BaseDepthTransform):
         bevdepth_refine: bool = True, 
         depth_loss_factor: float = 3.0, 
         add_depth_features = False,
+        point_feature_dim: int = None,
     ) -> None:
         super().__init__(
             in_channels=in_channels,
@@ -531,6 +532,7 @@ class AwareDBEVDepth(BaseDepthTransform):
             self.refinement = DepthRefinement(self.C, self.C, self.C)
 
         self.depth_channels = self.frustum.shape[0]
+        self.point_feature_dim = point_feature_dim
 
         mid_channels = in_channels 
         self.depthnet = DepthNet(
@@ -542,7 +544,10 @@ class AwareDBEVDepth(BaseDepthTransform):
 
         dtransform_in_channels = 1 if depth_input=='scalar' else self.D
         if self.add_depth_features:
-            dtransform_in_channels += 45
+            if point_feature_dim is not None:
+                dtransform_in_channels += point_feature_dim
+            else:
+                dtransform_in_channels += 45
 
         if depth_input == 'scalar':
             self.dtransform = nn.Sequential(

@@ -27,6 +27,7 @@ class DepthLSSTransform(BaseDepthTransform):
         depth_input: str = 'scalar',
         add_depth_features: bool = False,
         height_expand: bool = True,
+        point_feature_dim: int = None,
     ) -> None:
         super().__init__(
             in_channels=in_channels,
@@ -41,9 +42,13 @@ class DepthLSSTransform(BaseDepthTransform):
             add_depth_features=add_depth_features,
             height_expand=height_expand,
         )
+        self.point_feature_dim = point_feature_dim
         depth_in_channels = 1 if depth_input == 'scalar' else self.D
-        # Note: if add_depth_features=True, actual channels will be 1 + point_features
-        # This needs to match the dtransform input channels
+        if add_depth_features:
+            if point_feature_dim is not None:
+                depth_in_channels += point_feature_dim
+            else:
+                depth_in_channels += 45
         self.dtransform = nn.Sequential(
             nn.Conv2d(depth_in_channels, 8, 1),
             nn.BatchNorm2d(8),
