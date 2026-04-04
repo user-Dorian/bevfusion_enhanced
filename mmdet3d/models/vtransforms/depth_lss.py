@@ -24,6 +24,10 @@ class DepthLSSTransform(BaseDepthTransform):
         zbound: Tuple[float, float, float],
         dbound: Tuple[float, float, float],
         downsample: int = 1,
+        depth_input: str = 'scalar',
+        add_depth_features: bool = True,
+        height_expand: bool = True,
+        point_feature_dims: int = 5,
     ) -> None:
         super().__init__(
             in_channels=in_channels,
@@ -34,9 +38,16 @@ class DepthLSSTransform(BaseDepthTransform):
             ybound=ybound,
             zbound=zbound,
             dbound=dbound,
+            depth_input=depth_input,
+            add_depth_features=add_depth_features,
+            height_expand=height_expand,
         )
+        depth_in_channels = 1 if depth_input == 'scalar' else self.D
+        if add_depth_features:
+            depth_in_channels += point_feature_dims
+        
         self.dtransform = nn.Sequential(
-            nn.Conv2d(1, 8, 1),
+            nn.Conv2d(depth_in_channels, 8, 1),
             nn.BatchNorm2d(8),
             nn.ReLU(True),
             nn.Conv2d(8, 32, 5, stride=4, padding=2),
